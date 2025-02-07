@@ -17,7 +17,7 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
     }
 
     if (changeInfo.removed) {
-        let reason = changeInfo.cause === "evicted" ? "Deleted due to storage limit" : "Explicitly deleted";
+        let reason = changeInfo.cause === "evicted" ? "Deleted due to storage limit" : "<u>Explicitly deleted</u>";
         message = `❌ Cookie Removed: ${cookie.name} (${reason})`;
         cookieDetail = changeInfo.cookie.value ? `Key: ${cookie.name}; Value: ${changeInfo.cookie.value}` : `Key: ${cookie.name}; Value: undefined`;
     } else {

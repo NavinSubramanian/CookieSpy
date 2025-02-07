@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message.type === "cookieChange") {
             const logEntry = document.createElement("div");
-            logEntry.textContent = message.message;
+            logEntry.innerHTML = message.message;
     
             // Log message content for debugging
             console.log("Received Message:", message.message);

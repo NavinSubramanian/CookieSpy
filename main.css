@@ -1,0 +1,130 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap");
+
+:root {
+  --primary-color: #007bff;
+  --secondary-color: #f4f4f4;
+  --text-color: #333;
+  --border-radius: 8px;
+  --shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  background: white;
+  color: var(--text-color);
+  margin: 0;
+  padding: 20px;
+  text-align: center;
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-bottom: 15px;
+}
+
+button {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: white;
+  background: var(--primary-color);
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: 0.3s ease-in-out;
+  box-shadow: var(--shadow);
+}
+
+button:hover {
+  background: #0056b3;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  background: var(--secondary-color);
+  margin: 13px 0;
+  padding: 10px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  word-wrap: break-word;
+  font-size: 14px;
+  text-align: left;
+}
+
+.log-container {
+  border: 1px solid #ddd;
+  background: var(--secondary-color);
+  padding: 15px;
+  margin-top: 20px;
+  max-height: 80vh;
+  overflow-y: auto;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+}
+
+blockquote {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--text-color);
+  padding: 8px;
+  border-left: 4px solid var(--primary-color);
+  background: #f8f9fa;
+  margin: 10px 0;
+  border-radius: var(--border-radius);
+  text-align: left;
+}
+
+#cookie-legends {
+  background: #fff;
+  padding: 10px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  text-align: left;
+}
+
+#cookie-legends ul {
+  padding: 10px;
+}
+
+#cookie-legends li {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: 0.2s;
+}
+#cookie-legends li:hover {
+  transform: scale(1.01);
+}
+
+#log div {
+  font-size: 16px;
+  padding: 10px;
+  border-radius: var(--border-radius);
+}
+
+#log div:nth-child(odd) {
+  background: #f8f8f8;
+}
+
+.cookiePopup {
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  padding: 10px;
+  row-gap: 10px;
+}
+
+.cookieTask {
+  display: flex;
+  column-gap: 20px;
+}
