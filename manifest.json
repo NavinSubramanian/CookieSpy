@@ -13,11 +13,22 @@
     "tabs"
   ],
   "host_permissions": ["<all_urls>"],
+  "web_accessible_resources": [
+    {
+      "resources": ["images/logo16x16.png", "images/logo48x48.png", "images/logo128x128.png", "Logo.png"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/logo16x16.png",
+      "48": "images/logo48x48.png",
+      "128": "images/logo128x128.png"
+    }
   },
   "chrome_url_overrides": {
     "newtab": "persistent.html"

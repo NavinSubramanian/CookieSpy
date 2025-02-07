@@ -58,13 +58,24 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
 
 // Helper function to create notifications
 function showNotification(title, message) {
-    chrome.notifications.create({
-        type: "basic",
-        iconUrl: "icon.png",
-        title: title,
-        message: message
-    });
+    chrome.notifications.create(
+        "",  // Empty string generates a unique notification ID
+        {
+            type: "basic",
+            iconUrl: "Logo.png",
+            title: title,
+            message: message
+        },
+        (notificationId) => {
+            if (chrome.runtime.lastError) {
+                console.error("Notification Error:", chrome.runtime.lastError.message);
+            } else {
+                console.log("Notification Created:", notificationId);
+            }
+        }
+    );
 }
+
 
 // Monitor cookies on tab navigation
 chrome.webNavigation.onCompleted.addListener((details) => {
