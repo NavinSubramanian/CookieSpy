@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Persistent Cookie Monitor</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 10px;
+      }
+      h1 {
+        font-size: 24px;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      #log {
+        border: 1px solid #ddd;
+        padding: 10px;
+        max-height: 85vh;
+        overflow-y: auto;
+        background: #f9f9f9;
+      }
+      #log > div {
+        margin: 10px 0;
+        font-size: 20px;
+        font-weight: 300;
+      }
+      #log > div > blockquote{
+        font-size: 14px !important;
+        font-weight: bolder !important;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Persistent Cookie Monitor</h1>
+    <div id="cookie-legends">
+      <h3>Cookie Change Legends</h3>
+      <ul>
+        <li><span style="color: red">🟥</span> Cookie Removed</li>
+        <li><span style="color: blue">🟦</span> New Cookie Added</li>
+        <li><span style="color: green">🟩</span> Cookie Modified</li>
+        <li><span style="color: orange">🟧</span> Security Warning</li>
+      </ul>
+    </div>
+    <div id="log">Waiting for cookie events...</div>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Cookie Security Monitor",
+  "version": "1.0",
+  "description": "Monitor and protect against cookie hijacking, poisoning, and modification.",
+  "permissions": [
+    "cookies",
+    "notifications",
+    "declarativeNetRequest",
+    "webNavigation",
+    "storage",
+    "activeTab",
+    "tabs"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "chrome_url_overrides": {
+    "newtab": "persistent.html"
+  }
+}
