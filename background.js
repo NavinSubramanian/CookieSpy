@@ -6,32 +6,48 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
     let message = "";
     let source = "Unknown source";
     let cookieDetail = "";
+    let securityWarnings = [];
 
-    // Identify source of modification
+    // Identify modification source
     if (changeInfo.cause === "explicit") {
-        source = "From the website itself";
+        source = "Modified by the website itself";
     } else if (changeInfo.cause === "overwrite") {
-        source = "From outside sources (e.g., server response, browser policy)";
+        source = "Modified externally (e.g., server response, browser policy)";
     } else if (changeInfo.cause === "expired_overwrite") {
-        source = "From another extension";
+        source = "Modified by another extension";
     }
 
+    // Track potential session hijacking
+    const sessionKeywords = ["session", "auth", "token"];
+    const isSessionCookie = sessionKeywords.some(keyword => cookie.name.toLowerCase().includes(keyword));
+
     if (changeInfo.removed) {
-        let reason = changeInfo.cause === "evicted" ? "Deleted due to storage limit" : "<u>Explicitly deleted</u>";
+        let reason = changeInfo.cause === "evicted" ? "Deleted due to storage limit" : "Explicitly deleted";
         message = `❌ Cookie Removed: ${cookie.name} (${reason})`;
-        cookieDetail = changeInfo.cookie.value ? `Key: ${cookie.name}; Value: ${changeInfo.cookie.value}` : `Key: ${cookie.name}; Value: undefined`;
+        cookieDetail = `Key: ${cookie.name}; Value: ${cookie.value || "undefined"}`;
+
+        // Detect unauthorized session deletion
+        if (isSessionCookie) {
+            securityWarnings.push("🚨 Possible session hijacking: A session/auth cookie was deleted!");
+        }
     } else {
         if (cookie.value === "") {
             message = `🆕 New Cookie Added: ${cookie.name} (${source})`;
-            cookieDetail = changeInfo.cookie.value ? `Key: ${cookie.name}; Value: ${changeInfo.cookie.value}` : `Key: ${cookie.name}; Value: undefined`;
         } else {
             message = `✏️ Cookie Modified: ${cookie.name} (${source})`;
-            cookieDetail = changeInfo.cookie.value ? `Key: ${cookie.name}; Value: ${changeInfo.cookie.value}` : `Key: ${cookie.name}; Value: undefined`;
         }
+        cookieDetail = `Key: ${cookie.name}; Value: ${cookie.value || "undefined"}`;
+
+        // Detect potential poisoning attacks (if the value changes unexpectedly)
+        chrome.storage.local.get([cookie.name], (result) => {
+            if (result[cookie.name] && result[cookie.name] !== cookie.value) {
+                securityWarnings.push(`⚠️ Cookie Poisoning Detected: ${cookie.name} was altered unexpectedly!`);
+            }
+            chrome.storage.local.set({ [cookie.name]: cookie.value });
+        });
     }
 
     // Security warnings
-    let securityWarnings = [];
     if (!cookie.httpOnly) {
         securityWarnings.push("⚠️ JavaScript can access this cookie (httpOnly=false)");
     }
@@ -52,14 +68,16 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
     // Send message to popup
     chrome.runtime.sendMessage({ type: "cookieChange", message, cookieDetail });
 
-    // Show notification
-    showNotification("Cookie Change Detected", message);
+    // Show notification for critical security issues
+    if (securityWarnings.length > 0) {
+        showNotification("⚠️ Security Alert!", message);
+    }
 });
 
 // Helper function to create notifications
 function showNotification(title, message) {
     chrome.notifications.create(
-        "",  // Empty string generates a unique notification ID
+        "",
         {
             type: "basic",
             iconUrl: "Logo.png",
@@ -75,7 +93,6 @@ function showNotification(title, message) {
         }
     );
 }
-
 
 // Monitor cookies on tab navigation
 chrome.webNavigation.onCompleted.addListener((details) => {

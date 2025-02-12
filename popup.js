@@ -17,7 +17,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (viewCookiesButton) {
-        console.log("Cookie viewing:")
         viewCookiesButton.addEventListener("click", () => {
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 const tab = tabs[0];
@@ -42,44 +41,42 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
     }
+
     // Listen for messages from background.js
     const logContainer = document.getElementById("log");
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message.type === "cookieChange") {
             const logEntry = document.createElement("div");
             logEntry.innerHTML = message.message;
-    
-            // Log message content for debugging
-            console.log("Received Message:", message.message);
-    
-            // Apply color coding based on event type by checking for specific keywords in the message
+
+            // Color coding based on event type
             if (message.message.includes("Cookie Removed")) {
-                logEntry.style.color = "red"; // Deletions
+                logEntry.style.color = "red";
             } else if (message.message.includes("New Cookie Added")) {
-                logEntry.style.color = "blue"; // New cookies
+                logEntry.style.color = "blue";
             } else if (message.message.includes("Cookie Modified")) {
-                logEntry.style.color = "green"; // Modifications
-            } else if (message.message.includes("Insecure Cookie Detected")) {
-                logEntry.style.color = "orange"; // Security warnings
+                logEntry.style.color = "green";
+            } else if (message.message.includes("Security Alert")) {
+                logEntry.style.color = "orange";
+                logEntry.style.fontWeight = "bold";
             } else {
-                logEntry.style.color = "black"; // Default color for unknown cases
+                logEntry.style.color = "black";
             }
 
             const blockquote = document.createElement("blockquote");
-            blockquote.textContent = message.cookieDetail;  // This is the cookie key/value detail
-            logEntry.appendChild(blockquote);  // Add blockquote to the log entry
-    
+            blockquote.textContent = message.cookieDetail;
+            logEntry.appendChild(blockquote);
+
             // Append to log container
             logContainer.appendChild(logEntry);
-            logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll to bottom
+            logContainer.scrollTop = logContainer.scrollHeight;
         }
     });
-    
-    
 
+    // Open Persistent Monitor
     const btn = document.getElementById("openPersistent");
     if (btn && !btn.dataset.listenerAdded) {
-        btn.dataset.listenerAdded = "true";  // Mark listener as added
+        btn.dataset.listenerAdded = "true";
         btn.addEventListener("click", () => {
             chrome.tabs.create({ url: "persistent.html" });
         });
