@@ -5,21 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cookie Monitor</title>
     <link rel="stylesheet" href="main.css" />
-    <script src="popup.js"></script>
+    <script src="popup.js" defer></script>
   </head>
   <body>
-    <div class="cookiePopup">
-      <h1>Cookie Monitor</h1>
-      <div class="cookieTask">
-        <button id="viewCookies">View Cookies</button>
-        <button id="clearCookies">Clear Cookies</button>
+    <div class="popup-container">
+      <div class="header">
+        <h1>Cookie Spy</h1>
+        <div class="icons">
+          <button id="themeToggle">⏾</button>
+        </div>
       </div>
-      <ul id="cookieList">
-        <li>Cookies will appear here...</li>
-      </ul>
-      <hr />
-      <h1>Cookie Logs</h1>
-      <button id="openPersistent">Open Persistent Monitor</button>
+      <div class="tabs">
+        <p class="tab active" data-target="technologies">Cookies</p>
+        <p class="tab" data-target="info">Settings</p>
+      </div>
+      <div class="content">
+        <div id="technologies" class="tab-content active">
+          <div class="cookieTask">
+            <button class="mainButton" id="viewCookies">View Cookies</button>
+            <button class="mainButton" id="clearCookies">Clear Cookies</button>
+          </div>
+          <ul id="cookieList">
+            <li>Cookies will appear here...</li>
+          </ul>
+          <hr />
+          <h1>Cookie Logs</h1>
+          <button class="mainButton" id="openPersistent">Open Persistent Monitor</button>
+        </div>
+        <div id="info" class="tab-content">
+          <h1 class="section-header" data-target="settingsSection">Settings</h1>
+          <div id="settingsSection" class="section hidden">
+            <label>
+              <input type="checkbox" id="enableLogging" />
+              Enable Logging
+            </label>
+            <label>
+              <input type="checkbox" id="alertOnCookieChange" />
+              Alert on Cookie Change
+            </label>
+          </div>
+        </div>
+      </div>
     </div>
   </body>
 </html>

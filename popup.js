@@ -81,4 +81,32 @@ document.addEventListener("DOMContentLoaded", () => {
             chrome.tabs.create({ url: "persistent.html" });
         });
     }
+    
+    // Tab switching
+    const tabs = document.querySelectorAll(".tab");
+    const tabContents = document.querySelectorAll(".tab-content");
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        tabs.forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+
+        tabContents.forEach((content) => {
+          content.classList.remove("active");
+        });
+
+        document.getElementById(tab.dataset.target).classList.add("active");
+      });
+    });
+
+    // Dark mode toggle
+    const themeToggle = document.getElementById("themeToggle");
+    themeToggle.addEventListener("click", () => {
+      document.body.classList.toggle("dark-mode");
+      themeToggle.textContent = document.body.classList.contains(
+        "dark-mode"
+      )
+        ? "☀"
+        : "⏾";
+    });
 });
