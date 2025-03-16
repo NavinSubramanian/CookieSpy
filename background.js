@@ -160,3 +160,44 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
     }
 });
+
+
+const tabUrls = {};
+console.log("TABS: ", tabUrls)
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (tab.url) {
+        tabUrls[tabId] = tab.url;
+    }
+});
+
+chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
+    console.log(`Tab ${tabId} closed.`);
+    chrome.storage.sync.get(["autoDelete"], (data) => {
+        if (data.autoDelete && tabUrls[tabId]) {
+            chrome.cookies.getAll({ url: tabUrls[tabId] }, (cookies) => {
+                if (chrome.runtime.lastError) {
+                    console.error("Error getting cookies:", chrome.runtime.lastError);
+                    return;
+                }
+
+                cookies.forEach(cookie => {
+                    const cookieUrl = (cookie.secure ? "https://" : "http://") + cookie.domain + cookie.path;
+
+                    chrome.cookies.remove({
+                        url: cookieUrl,
+                        name: cookie.name
+                    }, () => {
+                        if (chrome.runtime.lastError) {
+                            console.error(`Error deleting ${cookie.name}:`, chrome.runtime.lastError);
+                        } else {
+                            console.log(`Deleted cookie: ${cookie.name}`);
+                        }
+                    });
+                });
+
+                delete tabUrls[tabId];
+            });
+        }
+    });
+});

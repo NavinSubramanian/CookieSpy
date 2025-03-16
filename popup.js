@@ -1,11 +1,15 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const cookieList = document.getElementById("cookieList");
+    const cookieSearch = document.getElementById("cookieSearch") || false;
+    const viewCookies = document.getElementById("viewCookies") || false;
+    const closePopup = document.getElementById("closePopup") || false;
+    const exportJson = document.getElementById("exportJson") || false;
+    const exportCsv = document.getElementById("exportCsv") || false;
 
-    document.getElementById("cookieSearch").addEventListener("input", searchForCookie);
-    document.getElementById("viewCookies").addEventListener("click", showCookies);
-    document.getElementById("closePopup").addEventListener("click", closePopup);
-    document.getElementById("exportJson").addEventListener("click",exportAsJson);
-    document.getElementById("exportCsv").addEventListener("click",exportAsCsv);
+    if (cookieSearch) cookieSearch.addEventListener("input", searchForCookie);
+    if (viewCookies) viewCookies.addEventListener("click", showCookies);
+    if (closePopup) closePopup.addEventListener("click", closePopup);
+    if (exportJson) exportJson.addEventListener("click", exportAsJson);
+    if (exportCsv) exportCsv.addEventListener("click", exportAsCsv);
 
     // Listen for messages from background.js
     const logContainer = document.getElementById("log");
@@ -93,45 +97,65 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Dark mode toggle
-    const themeToggle = document.getElementById("themeToggle");
-    themeToggle.addEventListener("click", () => {
-      document.body.classList.toggle("dark-mode");
-      themeToggle.textContent = document.body.classList.contains(
-        "dark-mode"
-      )
-        ? "☀"
-        : "⏾";
-    });
+    const themeToggle = document.getElementById("themeToggle") || false;
+    if(themeToggle){
+        themeToggle.addEventListener("click", () => {
+          document.body.classList.toggle("dark-mode");
+          themeToggle.textContent = document.body.classList.contains(
+            "dark-mode"
+          )
+            ? "☀"
+            : "⏾";
+        });
+    }
 
-    const enableNotifications = document.getElementById("enableNotifications");
-    const enableTabLogging = document.getElementById("enableTabLogging");
-    const disableThirdPartyCookies = document.getElementById("disableThirdPartyCookies");
-    const tabDropdown = document.getElementById("tabDropdown");
+    const enableNotifications = document.getElementById("enableNotifications") || false;
+    const enableTabLogging = document.getElementById("enableTabLogging") || false;
+    const disableThirdPartyCookies = document.getElementById("disableThirdPartyCookies") || false;
+    const autoDeleteCookies = document.getElementById("autoDeleteCookies") || false;
+    const tabDropdown = document.getElementById("tabDropdown") || false;
 
     // Load saved settings
-    chrome.storage.sync.get(["notifications", "loggingTab", "blockThirdParty"], (data) => {
+    chrome.storage.sync.get(["notifications", "loggingTab", "blockThirdParty","autoDelete"], (data) => {
         enableNotifications.checked = data.notifications || false;
         enableTabLogging.checked = !!data.loggingTab;
         disableThirdPartyCookies.checked = data.blockThirdParty || false;
+        autoDeleteCookies.checked = data.autoDelete ?? false;
         console.log(data);
     });
 
-    // Enable system notifications toggle
-    enableNotifications.addEventListener("change", () => {
-        if (enableNotifications.checked) {
-            Notification.requestPermission().then((permission) => {
-                if (permission === "granted") {
-                    chrome.storage.sync.set({ notifications: true });
+    // Add auto-delete cookies checkbox listener
+    if(autoDeleteCookies){
+        autoDeleteCookies.addEventListener("change", () => {
+            console.log(`Auto-delete cookies setting changed to: ${autoDeleteCookies.checked}`);
+            chrome.storage.sync.set({ autoDelete: autoDeleteCookies.checked }, () => {
+                if (chrome.runtime.lastError) {
+                    console.error("Error saving auto-delete setting:", chrome.runtime.lastError);
                 } else {
-                    enableNotifications.checked = false;
-                    chrome.storage.sync.set({ notifications: false });
-                    alert("Notifications permission denied. Please allow notifications in browser settings.");
+                    console.log("Auto-delete setting saved successfully");
                 }
             });
-        } else {
-            chrome.storage.sync.set({ notifications: false });
-        }
-    });
+        });
+    }
+
+    // Enable system notifications toggle
+    if(enableNotifications){
+        enableNotifications.addEventListener("change", () => {
+            if (enableNotifications.checked) {
+                Notification.requestPermission().then((permission) => {
+                    if (permission === "granted") {
+                        chrome.storage.sync.set({ notifications: true });
+                    } else {
+                        enableNotifications.checked = false;
+                        chrome.storage.sync.set({ notifications: false });
+                        alert("Notifications permission denied. Please allow notifications in browser settings.");
+                    }
+                });
+            } else {
+                chrome.storage.sync.set({ notifications: false });
+            }
+        });
+    }
 
     // Populate tab dropdown
     function populateTabs() {
@@ -157,29 +181,35 @@ document.addEventListener("DOMContentLoaded", () => {
     populateTabs();
 
     // Enable logging for a specific tab
-    enableTabLogging.addEventListener("change", () => {
-        if (enableTabLogging.checked) {
-            const selectedTab = tabDropdown.value;
-            chrome.storage.sync.set({ loggingTab: selectedTab });
-        } else {
-            chrome.storage.sync.remove("loggingTab");
-        }
-    });
+    if(enableTabLogging){
+        enableTabLogging.addEventListener("change", () => {
+            if (enableTabLogging.checked) {
+                const selectedTab = tabDropdown.value;
+                chrome.storage.sync.set({ loggingTab: selectedTab });
+            } else {
+                chrome.storage.sync.remove("loggingTab");
+            }
+        });
+    }
 
     // Disable third-party cookies toggle
-    disableThirdPartyCookies.addEventListener("change", () => {
-        chrome.storage.sync.set({ blockThirdParty: disableThirdPartyCookies.checked });
-        chrome.privacy.websites.thirdPartyCookiesAllowed.set({
-            value: !disableThirdPartyCookies.checked // Invert checkbox value to disable cookies
+    if(disableThirdPartyCookies){
+        disableThirdPartyCookies.addEventListener("change", () => {
+            chrome.storage.sync.set({ blockThirdParty: disableThirdPartyCookies.checked });
+            chrome.privacy.websites.thirdPartyCookiesAllowed.set({
+                value: !disableThirdPartyCookies.checked // Invert checkbox value to disable cookies
+            });
         });
-    });
+    }
 
     // Listen for tab selection changes
-    tabDropdown.addEventListener("change", () => {
-        if (enableTabLogging.checked) {
-            chrome.storage.sync.set({ loggingTab: tabDropdown.value });
-        }
-    });
+    if(tabDropdown){
+        tabDropdown.addEventListener("change", () => {
+            if (enableTabLogging.checked) {
+                chrome.storage.sync.set({ loggingTab: tabDropdown.value });
+            }
+        });
+    }
 
     const detectThirdPartyButton = document.getElementById("detectThirdParty");
     if (detectThirdPartyButton) {
