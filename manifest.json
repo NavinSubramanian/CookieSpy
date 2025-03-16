@@ -33,8 +33,5 @@
       "48": "images/logo48x48.png",
       "128": "images/logo128x128.png"
     }
-  },
-  "chrome_url_overrides": {
-    "newtab": "persistent.html"
   }
 }

@@ -62,6 +62,9 @@ document.addEventListener("DOMContentLoaded", () => {
             const blockquote = document.createElement("blockquote");
             blockquote.textContent = message.cookieDetail;
             logEntry.appendChild(blockquote);
+            const bl2 = document.createElement("blockquote");
+            bl2.textContent = message.expirationInfo;
+            logEntry.appendChild(bl2)
     
             logContainer.appendChild(logEntry);
             logContainer.scrollTop = logContainer.scrollHeight;
@@ -417,3 +420,111 @@ function exportAsCsv() {
         });
     });
 }
+
+chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const currentUrl = new URL(tabs[0].url).hostname;
+    
+    getWebsiteScore(currentUrl).then(score => {
+        document.getElementById("scoreValue").innerText = score;
+    });
+});
+
+// Add this after your existing imports
+async function getWebsiteScore(hostname) {
+    try {
+        // Check common security indicators
+        const securityChecks = {
+            httpsScore: hostname.startsWith('https') ? 30 : 0,
+            cookieScore: 0,
+            domainReputation: 0
+        };
+
+        // Get all cookies for the domain
+        const cookies = await new Promise(resolve => {
+            chrome.cookies.getAll({ domain: hostname }, resolve);
+        });
+
+        // Analyze cookies for security practices
+        cookies.forEach(cookie => {
+            if (cookie.secure) securityChecks.cookieScore += 10;
+            if (cookie.httpOnly) securityChecks.cookieScore += 10;
+            if (cookie.sameSite !== 'none') securityChecks.cookieScore += 10;
+        });
+
+        // Normalize cookie score to max 40 points
+        securityChecks.cookieScore = Math.min(40, securityChecks.cookieScore);
+
+        // Check domain reputation using Google Safe Browsing API (you'll need to implement this)
+        try {
+            const response = await fetch(`https://safebrowsing.googleapis.com/v4/threatMatches:find?key=AIzaSyB-hJcpJqQIvgmCbLtrzM7Wo8LxukARLdU`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    client: {
+                        clientId: "your-client-id",
+                        clientVersion: "1.0.0"
+                    },
+                    threatInfo: {
+                        threatTypes: ["MALWARE", "SOCIAL_ENGINEERING"],
+                        platformTypes: ["ANY_PLATFORM"],
+                        threatEntryTypes: ["URL"],
+                        threatEntries: [{ url: hostname }]
+                    }
+                })
+            });
+            const data = await response.json();
+            securityChecks.domainReputation = data.matches ? 0 : 30;
+        } catch (error) {
+            console.error('Safe Browsing API error:', error);
+            securityChecks.domainReputation = 15; // Default score if API fails
+        }
+
+        // Calculate total score
+        const totalScore = securityChecks.httpsScore + 
+                          securityChecks.cookieScore + 
+                          securityChecks.domainReputation;
+
+        // Get rating based on score
+        let rating;
+        if (totalScore >= 90) rating = "A+ (Excellent)";
+        else if (totalScore >= 80) rating = "A (Very Good)";
+        else if (totalScore >= 70) rating = "B (Good)";
+        else if (totalScore >= 60) rating = "C (Fair)";
+        else if (totalScore >= 50) rating = "D (Poor)";
+        else rating = "F (Unsafe)";
+
+        // Update UI with detailed information
+        const scoreElement = document.getElementById("scoreValue");
+        if (scoreElement) {
+            scoreElement.innerHTML = `
+                ${rating} (${totalScore}%)
+                <div class="score-details">
+                    <small>
+                        HTTPS: ${securityChecks.httpsScore}/30<br>
+                        Cookie Security: ${securityChecks.cookieScore}/40<br>
+                        Domain Safety: ${securityChecks.domainReputation}/30
+                    </small>
+                </div>
+            `;
+            
+            // Add color coding based on score
+            scoreElement.className = '';
+            if (totalScore >= 80) scoreElement.classList.add('score-excellent');
+            else if (totalScore >= 60) scoreElement.classList.add('score-good');
+            else if (totalScore >= 40) scoreElement.classList.add('score-fair');
+            else scoreElement.classList.add('score-poor');
+        }
+
+        return rating;
+    } catch (error) {
+        console.error('Error calculating website score:', error);
+        return "Unable to calculate score";
+    }
+}
+
+// Update the existing tab query to use the new scoring system
+chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+    if (tabs[0] && tabs[0].url) {
+        const hostname = new URL(tabs[0].url).hostname;
+        await getWebsiteScore(hostname);
+    }
+});

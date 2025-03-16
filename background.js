@@ -1,15 +1,21 @@
 const cookieCategories = {
+    essential: {
+        patterns: ["session", "auth", "login", "security", "csrf", "token", "necessary", "required", "essential"],
+        name: 'Essential'
+    },
+    functional: {
+        patterns: ["preferences", "settings", "language", "timezone", "region", "country", "saved", "functional"],
+        name: 'Functional'
+    },
     analytics: {
-        patterns: ['_ga', '_gid', 'analytics', 'statistic', '_pk_', 'gtag'],
+        patterns: ["analytics", "stats", "measurement", "metric", "ga", "gtm", "_ga", "_gid", "_gat", "utma", "utmb", "utmc", "utmt", "utmz",  "amplitude", "mixpanel", "plausible", "clarity"],
         name: 'Analytics'
     },
     advertising: {
-        patterns: ['_fbp', 'ads', '_gcl', 'doubleclick', 'adwords', 'adsense'],
+        patterns: [
+            "ad", "ads", "advert", "marketing", "promotion", "targeting", "affiliate", "conversion", "personalization", "retargeting", "campaign", "fbclid", "gclid", "doubleclick", "dcm", "criteo", "pixel", "impression"
+        ],
         name: 'Advertising'
-    },
-    essential: {
-        patterns: ['csrf', 'session', 'auth', 'token', 'secure', 'asp.net'],
-        name: 'Essential'
     },
     preferences: {
         patterns: ['theme', 'lang', 'preferences', 'settings'],
@@ -96,6 +102,19 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
                 const sessionKeywords = ["session", "auth", "token"];
                 const isSessionCookie = sessionKeywords.some(keyword => cookie.name.toLowerCase().includes(keyword));
 
+                let expirationInfo = "Session cookie (expires when closed)";
+                if (cookie.expirationDate) {
+                    let expiryDate = new Date(cookie.expirationDate * 1000);
+                    let expiryYears = (cookie.expirationDate - Date.now() / 1000) / (60 * 60 * 24 * 365);
+
+                    expirationInfo = `Expires: ${expiryDate.toUTCString()}`;
+
+                    // 🚨 Warn if expiration is longer than 2 years
+                    if (expiryYears > 2) {
+                        securityWarnings.push(`⚠️ Excessively long expiration (${expiryYears.toFixed(2)} years). Possible GDPR violation!`);
+                    }
+                }
+
                 if (changeInfo.removed) {
                     let reason = changeInfo.cause === "evicted" ? "Deleted due to storage limit" : "Explicitly deleted";
                     message = `❌ Cookie Removed: ${cookie.name} (${reason})`;
@@ -141,7 +160,7 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
                 console.log("Cookie Change Detected:", message);
 
                 // Send message to popup
-                chrome.runtime.sendMessage({ type: "cookieChange", message, cookieDetail, thirdPartyMessage });
+                chrome.runtime.sendMessage({ type: "cookieChange", message, cookieDetail, thirdPartyMessage, expirationInfo });
 
                 // Show notification for critical security issues
                 if (securityWarnings.length > 0) {

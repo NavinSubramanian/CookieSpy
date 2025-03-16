@@ -128,12 +128,80 @@ blockquote {
 
 /* New CSS */
 
+/* Update dark mode variables */
 .dark-mode {
   --bg-color: #1e1e1e;
   --text-color: #ffffff;
   --tab-bg: #333;
   --tab-active-bg: #222;
   --border-color: #444;
+  --secondary-color: #2d2d2d;
+  --popup-bg: #2d2d2d;
+  --table-header-bg: #333;
+  --table-border: #444;
+  --input-bg: #333;
+  --input-text: #fff;
+}
+
+/* Add dark mode specific styles */
+.dark-mode body {
+  background: var(--bg-color);
+}
+
+.dark-mode .popup {
+  background: var(--popup-bg);
+  color: var(--text-color);
+}
+
+.dark-mode table {
+  color: var(--text-color);
+}
+
+.dark-mode th {
+  background-color: var(--table-header-bg);
+  color: var(--text-color);
+  border-bottom: 1px solid var(--table-border);
+}
+
+.dark-mode td {
+  border-bottom: 1px solid var(--table-border);
+}
+
+.dark-mode #settingsSection {
+  background: var(--secondary-color);
+  color: var(--text-color);
+}
+
+.dark-mode #tabDropdown {
+  background: var(--input-bg);
+  color: var(--input-text);
+  border-color: var(--border-color);
+}
+
+.dark-mode #tabDropdown:hover {
+  background: var(--tab-bg);
+}
+
+.dark-mode .log-container {
+  background: var(--secondary-color);
+  border-color: var(--border-color);
+}
+
+.dark-mode blockquote {
+  background: var(--tab-bg);
+  border-left-color: var(--primary-color);
+}
+
+.dark-mode #log div:nth-child(odd) {
+  background: var(--tab-bg);
+}
+
+.dark-mode li {
+  background: var(--secondary-color);
+}
+
+.dark-mode #cookie-legends {
+  background: var(--secondary-color);
 }
 
 .popup-container {
