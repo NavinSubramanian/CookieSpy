@@ -67,8 +67,6 @@ document.addEventListener("DOMContentLoaded", () => {
             logContainer.scrollTop = logContainer.scrollHeight;
         }
     });
-    
-    
 
     // Open Persistent Monitor
     const btn = document.getElementById("openPersistent");
@@ -287,6 +285,11 @@ function showCookies() {
 
             cookies.forEach(cookie => {
                 let row = document.createElement("tr");
+
+                let cookieSize = encodeURIComponent(cookie.name + "=" + cookie.value).length;
+                let sizeThreshold = 4096; // 4KB limit for performance-heavy cookies
+                let performanceQuality = cookieSize > sizeThreshold ? "High Impact" : "Low Impact";
+
                 // Format expiration date
                 let expiration = cookie.expirationDate ? 
                     new Date(cookie.expirationDate * 1000).toLocaleString() : 
@@ -296,6 +299,8 @@ function showCookies() {
                     <td>${cookie.name}</td>
                     <td>${cookie.value}</td>
                     <td>${expiration}</td>
+                    <td>${cookieSize} bytes</td>
+                    <td>${performanceQuality}</td>
                     <td><button class="delete-btn" data-cookie-name="${cookie.name}">Delete</button></td>
                 `;
 

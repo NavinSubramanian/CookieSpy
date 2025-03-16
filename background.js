@@ -1,3 +1,48 @@
+const cookieCategories = {
+    analytics: {
+        patterns: ['_ga', '_gid', 'analytics', 'statistic', '_pk_', 'gtag'],
+        name: 'Analytics'
+    },
+    advertising: {
+        patterns: ['_fbp', 'ads', '_gcl', 'doubleclick', 'adwords', 'adsense'],
+        name: 'Advertising'
+    },
+    essential: {
+        patterns: ['csrf', 'session', 'auth', 'token', 'secure', 'asp.net'],
+        name: 'Essential'
+    },
+    preferences: {
+        patterns: ['theme', 'lang', 'preferences', 'settings'],
+        name: 'Preferences'
+    },
+    social: {
+        patterns: ['facebook', 'fb', 'twitter', 'linkedin', 'instagram', 'insta'],
+        name: 'Social Media'
+    }
+};
+
+function categorizeCookie(cookie) {
+    const cookieName = cookie.name.toLowerCase();
+    let category = 'Unknown';
+    let isSuspiciousEssential = false;
+
+    // Check each category's patterns
+    for (const [type, data] of Object.entries(cookieCategories)) {
+        if (data.patterns.some(pattern => cookieName.includes(pattern))) {
+            category = data.name;
+            
+            // Check for suspicious "essential" cookies
+            if (type !== 'essential' && 
+                cookieCategories.essential.patterns.some(pattern => cookieName.includes(pattern))) {
+                isSuspiciousEssential = true;
+            }
+            break;
+        }
+    }
+
+    return { category, isSuspiciousEssential };
+}
+
 // Listen for cookie changes
 chrome.cookies.onChanged.addListener((changeInfo) => {
     if (!changeInfo.cookie) return; // Ignore undefined cookie changes
@@ -8,6 +53,7 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
     let cookieDetail = "";
     let thirdPartyMessage = null
     let securityWarnings = [];
+    const { category, isSuspiciousEssential } = categorizeCookie(cookie);
 
     // Check if the current tab is the "loggingTab"
     chrome.storage.sync.get(["loggingTab"], (result) => {
@@ -33,6 +79,10 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
                     console.log(thirdPartyMessage);
                 }
 
+                if (isSuspiciousEssential) {
+                    securityWarnings.push("⚠️ Suspicious 'essential' cookie detected - possible tracking cookie");
+                }
+
                 // Identify modification source
                 if (changeInfo.cause === "explicit") {
                     source = "Modified by the website itself";
@@ -49,7 +99,7 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
                 if (changeInfo.removed) {
                     let reason = changeInfo.cause === "evicted" ? "Deleted due to storage limit" : "Explicitly deleted";
                     message = `❌ Cookie Removed: ${cookie.name} (${reason})`;
-                    cookieDetail = `Key: ${cookie.name}; Value: ${cookie.value || "undefined"}`;
+                    cookieDetail = `Category: ${category} || Key: ${cookie.name} || Value: ${cookie.value || "undefined"}`;
 
                     // Detect unauthorized session deletion
                     if (isSessionCookie) {
@@ -61,7 +111,7 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
                     } else {
                         message = `✏️ Cookie Modified: ${cookie.name} (${source})`;
                     }
-                    cookieDetail = `Key: ${cookie.name}; Value: ${cookie.value || "undefined"}`;
+                    cookieDetail = `Category: ${category} || Key: ${cookie.name} || Value: ${cookie.value || "undefined"}`;
 
                     // Detect potential poisoning attacks (if the value changes unexpectedly)
                     chrome.storage.local.get([cookie.name], (result) => {
