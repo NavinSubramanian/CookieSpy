@@ -60,6 +60,7 @@ li {
   background: var(--secondary-color);
   padding: 15px;
   margin-top: 20px;
+  margin-bottom: 40px;
   max-height: 80vh;
   overflow-y: auto;
   border-radius: var(--border-radius);
@@ -228,4 +229,214 @@ li a {
   color: var(--header-text);
   border: none;
   cursor: pointer;
+}
+
+#settingsSection {
+  background: var(--secondary-color);
+  padding: 15px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  text-align: left;
+}
+
+#settingsSection label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px;
+  cursor: pointer;
+}
+
+#settingsSection input[type="checkbox"] {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--primary-color);
+  border-radius: 4px;
+  position: relative;
+  transition: all 0.3s ease-in-out;
+  cursor: pointer;
+}
+
+#settingsSection input[type="checkbox"]:checked {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+#settingsSection input[type="checkbox"]::before {
+  content: "✔";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
+  display: none;
+}
+
+#settingsSection input[type="checkbox"]:checked::before {
+  display: block;
+}
+
+#tabDropdown {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border: 2px solid var(--primary-color);
+  border-radius: var(--border-radius);
+  background: white;
+  color: var(--text-color);
+  outline: none;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+#tabDropdown:hover {
+  background: var(--primary-light);
+}
+
+#tabDropdown:focus {
+  border-color: #6d40d5;
+}
+
+
+#blocked-cookies-list{
+  margin-bottom: 50px;
+}
+
+
+/* Overlay styles */
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+}
+
+.overlayHead{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.overlayHead h2{
+  color: var(--primary-color);
+}
+
+/* Popup container */
+.popup {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  overflow-x: hidden;
+  width: 90%;
+  max-width: 800px;
+  max-height: 80vh;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+table {
+  width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th, td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+  word-wrap: break-word;
+}
+
+th {
+  background-color: #f4f4f4;
+}
+
+td:nth-child(2) {
+  max-width: 300px;
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 600px) {
+  .popup {
+    width: 95%;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+
+.delete-btn {
+  background: red;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.close-btn {
+  padding: 8px 12px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+#cookieSearch {
+  width: 95%;
+  padding: 8px;
+  margin: 10px auto;
+  display: block;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.3s ease-in-out;
+}
+
+#cookieSearch:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+.dark-mode #cookieSearch {
+  background-color: #222;
+  color: #fff;
+  border-color: #555;
+}
+
+.dark-mode #cookieSearch:focus {
+  border-color: #66afe9;
+  box-shadow: 0 0 5px rgba(102, 175, 233, 0.5);
+}
+
+#exportJson, #exportCsv {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px 10px;
+  margin-right: 2px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+#exportJson:hover, #exportCsv:hover {
+  background-color: #45a049;
+}
+
+.popup button {
+  margin-top: 10px;
 }

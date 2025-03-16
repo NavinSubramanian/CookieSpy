@@ -6,92 +6,126 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
     let message = "";
     let source = "Unknown source";
     let cookieDetail = "";
+    let thirdPartyMessage = null
     let securityWarnings = [];
 
-    // Identify modification source
-    if (changeInfo.cause === "explicit") {
-        source = "Modified by the website itself";
-    } else if (changeInfo.cause === "overwrite") {
-        source = "Modified externally (e.g., server response, browser policy)";
-    } else if (changeInfo.cause === "expired_overwrite") {
-        source = "Modified by another extension";
-    }
+    // Check if the current tab is the "loggingTab"
+    chrome.storage.sync.get(["loggingTab"], (result) => {
+        const loggingTab = result.loggingTab;
+        if (!loggingTab) return; // No tab selected for logging, skip the processing
 
-    // Track potential session hijacking
-    const sessionKeywords = ["session", "auth", "token"];
-    const isSessionCookie = sessionKeywords.some(keyword => cookie.name.toLowerCase().includes(keyword));
+        // Get the current tab ID
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            const currentTabId = tabs[0].id;
+            const currentTabHostname = new URL(tabs[0].url).hostname;
 
-    if (changeInfo.removed) {
-        let reason = changeInfo.cause === "evicted" ? "Deleted due to storage limit" : "Explicitly deleted";
-        message = `❌ Cookie Removed: ${cookie.name} (${reason})`;
-        cookieDetail = `Key: ${cookie.name}; Value: ${cookie.value || "undefined"}`;
+            // If the current tab is the "loggingTab", proceed
+            if (currentTabId == loggingTab) {
 
-        // Detect unauthorized session deletion
-        if (isSessionCookie) {
-            securityWarnings.push("🚨 Possible session hijacking: A session/auth cookie was deleted!");
-        }
-    } else {
-        if (cookie.value === "") {
-            message = `🆕 New Cookie Added: ${cookie.name} (${source})`;
-        } else {
-            message = `✏️ Cookie Modified: ${cookie.name} (${source})`;
-        }
-        cookieDetail = `Key: ${cookie.name}; Value: ${cookie.value || "undefined"}`;
+                // Check if it's a third-party cookie
+                const cookieDomain = cookie.domain.startsWith('.') ? cookie.domain.substr(1) : cookie.domain;
+                if (!currentTabHostname.includes(cookieDomain) && !cookieDomain.includes(currentTabHostname)) {
+                    if (changeInfo.removed) {
+                        thirdPartyMessage = `🟥 Third-party cookie removed from ${cookieDomain}: ${cookie.name}`;
+                    } else {
+                        thirdPartyMessage = `🟦 Third-party cookie added from ${cookieDomain}: ${cookie.name}`;
+                    }
+                    console.log(thirdPartyMessage);
+                }
 
-        // Detect potential poisoning attacks (if the value changes unexpectedly)
-        chrome.storage.local.get([cookie.name], (result) => {
-            if (result[cookie.name] && result[cookie.name] !== cookie.value) {
-                securityWarnings.push(`⚠️ Cookie Poisoning Detected: ${cookie.name} was altered unexpectedly!`);
+                // Identify modification source
+                if (changeInfo.cause === "explicit") {
+                    source = "Modified by the website itself";
+                } else if (changeInfo.cause === "overwrite") {
+                    source = "Modified externally (e.g., server response, browser policy)";
+                } else if (changeInfo.cause === "expired_overwrite") {
+                    source = "Modified by another extension";
+                }
+
+                // Track potential session hijacking
+                const sessionKeywords = ["session", "auth", "token"];
+                const isSessionCookie = sessionKeywords.some(keyword => cookie.name.toLowerCase().includes(keyword));
+
+                if (changeInfo.removed) {
+                    let reason = changeInfo.cause === "evicted" ? "Deleted due to storage limit" : "Explicitly deleted";
+                    message = `❌ Cookie Removed: ${cookie.name} (${reason})`;
+                    cookieDetail = `Key: ${cookie.name}; Value: ${cookie.value || "undefined"}`;
+
+                    // Detect unauthorized session deletion
+                    if (isSessionCookie) {
+                        securityWarnings.push("🚨 Possible session hijacking: A session/auth cookie was deleted!");
+                    }
+                } else {
+                    if (cookie.value === "") {
+                        message = `🆕 New Cookie Added: ${cookie.name} (${source})`;
+                    } else {
+                        message = `✏️ Cookie Modified: ${cookie.name} (${source})`;
+                    }
+                    cookieDetail = `Key: ${cookie.name}; Value: ${cookie.value || "undefined"}`;
+
+                    // Detect potential poisoning attacks (if the value changes unexpectedly)
+                    chrome.storage.local.get([cookie.name], (result) => {
+                        if (result[cookie.name] && result[cookie.name] !== cookie.value) {
+                            securityWarnings.push(`⚠️ Cookie Poisoning Detected: ${cookie.name} was altered unexpectedly!`);
+                        }
+                        chrome.storage.local.set({ [cookie.name]: cookie.value });
+                    });
+                }
+
+                // Security warnings
+                if (!cookie.httpOnly) {
+                    securityWarnings.push("⚠️ JavaScript can access this cookie (httpOnly=false)");
+                }
+                if (!cookie.secure) {
+                    securityWarnings.push("⚠️ This cookie is sent over HTTP (secure=false)");
+                }
+                if (cookie.sameSite === "unspecified") {
+                    securityWarnings.push("⚠️ No SameSite policy set (Cross-site requests allowed)");
+                }
+
+                if (securityWarnings.length > 0) {
+                    message += ` | Security Issues: ${securityWarnings.join(", ")}`;
+                }
+
+                // Log to console
+                console.log("Cookie Change Detected:", message);
+
+                // Send message to popup
+                chrome.runtime.sendMessage({ type: "cookieChange", message, cookieDetail, thirdPartyMessage });
+
+                // Show notification for critical security issues
+                if (securityWarnings.length > 0) {
+                    showNotification("⚠️ Security Alert!", message);
+                }
             }
-            chrome.storage.local.set({ [cookie.name]: cookie.value });
         });
-    }
-
-    // Security warnings
-    if (!cookie.httpOnly) {
-        securityWarnings.push("⚠️ JavaScript can access this cookie (httpOnly=false)");
-    }
-    if (!cookie.secure) {
-        securityWarnings.push("⚠️ This cookie is sent over HTTP (secure=false)");
-    }
-    if (cookie.sameSite === "unspecified") {
-        securityWarnings.push("⚠️ No SameSite policy set (Cross-site requests allowed)");
-    }
-
-    if (securityWarnings.length > 0) {
-        message += ` | Security Issues: ${securityWarnings.join(", ")}`;
-    }
-
-    // Log to console
-    console.log("Cookie Change Detected:", message);
-
-    // Send message to popup
-    chrome.runtime.sendMessage({ type: "cookieChange", message, cookieDetail });
-
-    // Show notification for critical security issues
-    if (securityWarnings.length > 0) {
-        showNotification("⚠️ Security Alert!", message);
-    }
+    });
 });
 
 // Helper function to create notifications
 function showNotification(title, message) {
-    chrome.notifications.create(
-        "",
-        {
-            type: "basic",
-            iconUrl: "Logo.png",
-            title: title,
-            message: message
-        },
-        (notificationId) => {
-            if (chrome.runtime.lastError) {
-                console.error("Notification Error:", chrome.runtime.lastError.message);
-            } else {
-                console.log("Notification Created:", notificationId);
-            }
+    chrome.storage.sync.get("notifications", (data) => {
+        if (data.notifications) { // Only show if enabled
+            chrome.notifications.create(
+                "",
+                {
+                    type: "basic",
+                    iconUrl: "Logo.png",
+                    title: title,
+                    message: message
+                },
+                (notificationId) => {
+                    if (chrome.runtime.lastError) {
+                        console.error("Notification Error:", chrome.runtime.lastError.message);
+                    } else {
+                        console.log("Notification Created:", notificationId);
+                    }
+                }
+            );
+        } else {
+            console.log("Notifications are disabled, skipping.");
         }
-    );
+    });
 }
 
 // Monitor cookies on tab navigation
@@ -112,3 +146,17 @@ chrome.webNavigation.onCompleted.addListener((details) => {
         }
     });
 }, { url: [{ urlMatches: ".*" }] });
+
+// Add message relay handler for third-party cookies
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === "thirdPartyCookiesList") {
+        // Relay the message to all tabs
+        chrome.tabs.query({}, (tabs) => {
+            tabs.forEach(tab => {
+                chrome.tabs.sendMessage(tab.id, message).catch(() => {
+                    // Ignore errors for tabs that can't receive messages
+                });
+            });
+        });
+    }
+});

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Table</title>
+    <link rel="stylesheet" href="main.css">
+    <script src="popup.js" defer></script>
+</head>
+<body>
+    <div class="cookie-table-container">
+        <h2>Cookies</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Value</th>
+                    <th>Expiration</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="cookieTableBody">
+            </tbody>
+        </table>
+        <button id="closePopup" onclick="window.close()">Close</button>
+    </div>
+</body>
+</html>

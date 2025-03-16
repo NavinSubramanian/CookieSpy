@@ -23,7 +23,8 @@
         <div id="technologies" class="tab-content active">
           <div class="cookieTask">
             <button class="mainButton" id="viewCookies">View Cookies</button>
-            <button class="mainButton" id="clearCookies">Clear Cookies</button>
+            <!-- <button class="mainButton" id="clearCookies">Clear Cookies</button> -->
+            <button class="mainButton" id="detectThirdParty">Detect Third-Party Cookies</button>
           </div>
           <ul id="cookieList">
             <li>Cookies will appear here...</li>
@@ -36,15 +37,46 @@
           <h1 class="section-header" data-target="settingsSection">Settings</h1>
           <div id="settingsSection" class="section hidden">
             <label>
-              <input type="checkbox" id="enableLogging" />
-              Enable Logging
+              <input type="checkbox" id="enableNotifications" />
+              Enable System Notifications
             </label>
             <label>
-              <input type="checkbox" id="alertOnCookieChange" />
-              Alert on Cookie Change
+              <input type="checkbox" id="enableTabLogging" />
+              Enable Logging on Selected Tab
+            </label>
+            <select id="tabDropdown"></select>
+            <label>
+              <input type="checkbox" id="disableThirdPartyCookies" />
+              Disable Third-Party Cookies
             </label>
           </div>
+        </div>        
+      </div>
+    </div>
+
+    <!-- Overlay for cookie table -->
+    <div id="cookieOverlay" class="overlay">
+      <div class="popup">
+        <div class="overlayHead">
+          <h2>Cookies Table</h2>
+          <button class="close-btn" id="closePopup">Close</button>
         </div>
+        <input type="text" id="cookieSearch" placeholder="Search cookies..." />
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Value</th>
+              <th>Expiration</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="cookieTableBody">
+          </tbody>
+        </table>
+
+        <button id="exportJson">Export as JSON</button>
+        <button id="exportCsv">Export as CSV</button>
       </div>
     </div>
   </body>

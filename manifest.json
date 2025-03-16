@@ -10,9 +10,13 @@
     "webNavigation",
     "storage",
     "activeTab",
-    "tabs"
+    "tabs",
+    "downloads"
   ],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
   "web_accessible_resources": [
     {
       "resources": ["images/logo16x16.png", "images/logo48x48.png", "images/logo128x128.png", "Logo.png"],
