@@ -490,7 +490,7 @@ td:nth-child(2) {
   box-shadow: 0 0 5px rgba(102, 175, 233, 0.5);
 }
 
-#exportJson, #exportCsv {
+#exportJson, #exportCsv, .whitelist-btn {
   background-color: #4CAF50;
   color: white;
   border: none;

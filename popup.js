@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Add auto-delete cookies checkbox listener
-    if(autoDeleteCookies){
+    if (autoDeleteCookies) {
         autoDeleteCookies.addEventListener("change", () => {
             console.log(`Auto-delete cookies setting changed to: ${autoDeleteCookies.checked}`);
             chrome.storage.sync.set({ autoDelete: autoDeleteCookies.checked }, () => {
@@ -270,6 +270,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
+
 // Function to show cookies in the popup
 
 function showCookies() {
@@ -282,52 +283,78 @@ function showCookies() {
             console.log("Cookies found:", cookies);
 
             if (!cookies || cookies.length === 0) {
-                tableBody.innerHTML = "<tr><td colspan='4'>No cookies found</td></tr>";
+                tableBody.innerHTML = "<tr><td colspan='6'>No cookies found</td></tr>";
                 return;
             }
 
-            cookies.forEach(cookie => {
-                let row = document.createElement("tr");
+            // Retrieve whitelisted cookies from storage
+            chrome.storage.sync.get(["whitelistedCookies"], (data) => {
+                let whitelistedCookies = data.whitelistedCookies || [];
 
-                let cookieSize = encodeURIComponent(cookie.name + "=" + cookie.value).length;
-                let sizeThreshold = 4096; // 4KB limit for performance-heavy cookies
-                let performanceQuality = cookieSize > sizeThreshold ? "High Impact" : "Low Impact";
+                cookies.forEach(cookie => {
+                    let row = document.createElement("tr");
 
-                // Format expiration date
-                let expiration = cookie.expirationDate ? 
-                    new Date(cookie.expirationDate * 1000).toLocaleString() : 
-                    "Session Cookie";
+                    let cookieSize = encodeURIComponent(cookie.name + "=" + cookie.value).length;
+                    let sizeThreshold = 4096;
+                    let performanceQuality = cookieSize > sizeThreshold ? "High Impact" : "Low Impact";
 
-                row.innerHTML = `
-                    <td>${cookie.name}</td>
-                    <td>${cookie.value}</td>
-                    <td>${expiration}</td>
-                    <td>${cookieSize} bytes</td>
-                    <td>${performanceQuality}</td>
-                    <td><button class="delete-btn" data-cookie-name="${cookie.name}">Delete</button></td>
-                `;
+                    let expiration = cookie.expirationDate ? 
+                        new Date(cookie.expirationDate * 1000).toLocaleString() : 
+                        "Session Cookie";
 
-                // Add delete button listener
-                row.querySelector('.delete-btn').addEventListener('click', function() {
-                    const cookieName = this.getAttribute('data-cookie-name');
-                    chrome.cookies.remove({
-                        url: tab.url,
-                        name: cookieName
-                    }, () => {
-                        row.remove();
-                        if (tableBody.children.length === 0) {
-                            tableBody.innerHTML = "<tr><td colspan='4'>No cookies found</td></tr>";
-                        }
+                    let isWhitelisted = whitelistedCookies.includes(cookie.name);
+
+                    row.innerHTML = `
+                        <td>${cookie.name}</td>
+                        <td>${cookie.value}</td>
+                        <td>${expiration}</td>
+                        <td>${cookieSize} bytes</td>
+                        <td>${performanceQuality}</td>
+                        <td>
+                            <button class="delete-btn" data-cookie-name="${cookie.name}">Delete</button>
+                            <button class="whitelist-btn" data-cookie-name="${cookie.name}">${isWhitelisted ? "Unwhitelist" : "Whitelist"}</button>
+                        </td>
+                    `;
+
+                    if (isWhitelisted) {
+                        row.style.backgroundColor = "#c3f7c3"; // Highlight whitelisted cookies
+                    }
+
+                    // Delete Button Listener
+                    row.querySelector('.delete-btn').addEventListener('click', function () {
+                        const cookieName = this.getAttribute('data-cookie-name');
+                        chrome.cookies.remove({ url: tab.url, name: cookieName }, () => {
+                            row.remove();
+                            if (tableBody.children.length === 0) {
+                                tableBody.innerHTML = "<tr><td colspan='6'>No cookies found</td></tr>";
+                            }
+                        });
                     });
-                });
 
-                tableBody.appendChild(row);
+                    // Whitelist Button Listener
+                    row.querySelector('.whitelist-btn').addEventListener('click', function () {
+                        const cookieName = this.getAttribute('data-cookie-name');
+                        if (whitelistedCookies.includes(cookieName)) {
+                            whitelistedCookies = whitelistedCookies.filter(name => name !== cookieName);
+                            row.style.backgroundColor = ""; // Remove highlight
+                            this.textContent = "Whitelist";
+                        } else {
+                            whitelistedCookies.push(cookieName);
+                            row.style.backgroundColor = "#c3f7c3"; // Highlight whitelisted row
+                            this.textContent = "Unwhitelist";
+                        }
+                        chrome.storage.sync.set({ whitelistedCookies });
+                    });
+
+                    tableBody.appendChild(row);
+                });
             });
         });
     });
 
     document.getElementById("cookieOverlay").style.display = "flex";
 }
+
 
 function deleteCookie(name) {
     document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
@@ -430,11 +457,24 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
 });
 
 // Add this after your existing imports
-async function getWebsiteScore(hostname) {
+async function getWebsiteScore(url) {
     try {
+        let hostname;
+        let protocol;
+        
+        try {
+            const urlObj = new URL(url);
+            hostname = urlObj.hostname;
+            protocol = urlObj.protocol;
+        } catch (error) {
+            // If URL parsing fails, assume it's just a hostname
+            hostname = url;
+            protocol = 'http:'; // Default to http
+        }
+        console.log(protocol+" "+url+" "+hostname);
         // Check common security indicators
         const securityChecks = {
-            httpsScore: hostname.startsWith('https') ? 30 : 0,
+            httpsScore: protocol === 'https:' ? 30 : 0,
             cookieScore: 0,
             domainReputation: 0
         };

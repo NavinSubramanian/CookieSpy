@@ -230,9 +230,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 
-
 const tabUrls = {};
-console.log("TABS: ", tabUrls)
+console.log("TABS: ", tabUrls);
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (tab.url) {
@@ -242,8 +241,11 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
     console.log(`Tab ${tabId} closed.`);
-    chrome.storage.sync.get(["autoDelete"], (data) => {
+
+    chrome.storage.sync.get(["autoDelete", "whitelistedCookies"], (data) => {
         if (data.autoDelete && tabUrls[tabId]) {
+            let whitelistedCookies = data.whitelistedCookies || [];
+
             chrome.cookies.getAll({ url: tabUrls[tabId] }, (cookies) => {
                 if (chrome.runtime.lastError) {
                     console.error("Error getting cookies:", chrome.runtime.lastError);
@@ -251,12 +253,14 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
                 }
 
                 cookies.forEach(cookie => {
+                    if (whitelistedCookies.includes(cookie.name)) {
+                        console.log(`Skipping whitelisted cookie: ${cookie.name}`);
+                        return; // Skip deletion for whitelisted cookies
+                    }
+
                     const cookieUrl = (cookie.secure ? "https://" : "http://") + cookie.domain + cookie.path;
 
-                    chrome.cookies.remove({
-                        url: cookieUrl,
-                        name: cookie.name
-                    }, () => {
+                    chrome.cookies.remove({ url: cookieUrl, name: cookie.name }, () => {
                         if (chrome.runtime.lastError) {
                             console.error(`Error deleting ${cookie.name}:`, chrome.runtime.lastError);
                         } else {
@@ -265,7 +269,7 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
                     });
                 });
 
-                delete tabUrls[tabId];
+                delete tabUrls[tabId]; // Remove tab entry after processing
             });
         }
     });
