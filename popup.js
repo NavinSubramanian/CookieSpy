@@ -4,7 +4,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const closePopup = document.getElementById("closePopup") || false;
     const exportJson = document.getElementById("exportJson") || false;
     const exportCsv = document.getElementById("exportCsv") || false;
-
+    const addCookiebtn = document.getElementById("addCookie") || false;
+    
+    if(addCookiebtn) addCookiebtn.addEventListener("click", addNewCookie);
     if (cookieSearch) cookieSearch.addEventListener("input", searchForCookie);
     if (viewCookies) viewCookies.addEventListener("click", showCookies);
     if (closePopup) closePopup.addEventListener("click", closePopup);
@@ -283,7 +285,7 @@ function showCookies() {
             console.log("Cookies found:", cookies);
 
             if (!cookies || cookies.length === 0) {
-                tableBody.innerHTML = "<tr><td colspan='6'>No cookies found</td></tr>";
+                tableBody.innerHTML = "<tr><td colspan='7'>No cookies found</td></tr>";
                 return;
             }
 
@@ -305,8 +307,8 @@ function showCookies() {
                     let isWhitelisted = whitelistedCookies.includes(cookie.name);
 
                     row.innerHTML = `
-                        <td>${cookie.name}</td>
-                        <td>${cookie.value}</td>
+                        <td contenteditable="true" class="editable cookie-name">${cookie.name}</td>
+                        <td contenteditable="true" class="editable cookie-value">${cookie.value}</td>
                         <td>${expiration}</td>
                         <td>${cookieSize} bytes</td>
                         <td>${performanceQuality}</td>
@@ -320,13 +322,22 @@ function showCookies() {
                         row.style.backgroundColor = "#c3f7c3"; // Highlight whitelisted cookies
                     }
 
+                    // Update cookie on edit
+                    row.querySelector(".cookie-name").addEventListener("blur", function () {
+                        updateCookie(tab.url, cookie.name, this.textContent, cookie.value);
+                    });
+
+                    row.querySelector(".cookie-value").addEventListener("blur", function () {
+                        updateCookie(tab.url, cookie.name, cookie.name, this.textContent);
+                    });
+
                     // Delete Button Listener
                     row.querySelector('.delete-btn').addEventListener('click', function () {
                         const cookieName = this.getAttribute('data-cookie-name');
                         chrome.cookies.remove({ url: tab.url, name: cookieName }, () => {
                             row.remove();
                             if (tableBody.children.length === 0) {
-                                tableBody.innerHTML = "<tr><td colspan='6'>No cookies found</td></tr>";
+                                tableBody.innerHTML = "<tr><td colspan='7'>No cookies found</td></tr>";
                             }
                         });
                     });
@@ -355,6 +366,57 @@ function showCookies() {
     document.getElementById("cookieOverlay").style.display = "flex";
 }
 
+// Function to update cookie values
+function updateCookie(url, oldName, newName, newValue) {
+    chrome.cookies.getAll({ url: url }, (cookies) => {
+        cookies.forEach(cookie => {
+            if (cookie.name === oldName) {
+                // Remove the old cookie
+                chrome.cookies.remove({ url: url, name: oldName }, () => {
+                    // Set the new cookie
+                    chrome.cookies.set({
+                        url: url,
+                        name: newName,
+                        value: newValue,
+                        path: cookie.path || "/",
+                        secure: cookie.secure,
+                        httpOnly: cookie.httpOnly,
+                        sameSite: cookie.sameSite,
+                        expirationDate: cookie.expirationDate
+                    });
+                });
+            }
+        });
+    });
+}
+
+// Function to add a new cookie
+function addNewCookie() {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const tab = tabs[0];
+        const name = document.getElementById("newCookieName").value;
+        const value = document.getElementById("newCookieValue").value;
+
+        console.log(name+" "+value)
+
+        if (!name || !value) {
+            alert("Please enter both a name and a value for the cookie.");
+            return;
+        }
+
+        chrome.cookies.set({
+            url: tab.url,
+            name: name,
+            value: value,
+            path: "/",
+            expirationDate: (Date.now() / 1000) + 3600 // 1 hour expiry
+        }, () => {
+            showCookies(); // Refresh table
+        });
+    });
+}
+
+
 
 function deleteCookie(name) {
     document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
@@ -362,6 +424,7 @@ function deleteCookie(name) {
 }
 
 function closePopup() {
+    console.log("Close button clicked")
     document.getElementById("cookieOverlay").style.display = "none";
 }
 
