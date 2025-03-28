@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Function to create a log entry
-    function createLogEntry(message, type, cookieName, timestamp, securityIssues) {
+    function createLogEntry(message, type, cookieName, timestamp, securityIssues, cookieValue) {
         const logEntry = document.createElement("div");
         logEntry.classList.add("log-entry", type);
     
@@ -56,6 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <span class="cookie-name">${cookieName}</span>
                     <span class="timestamp">${timestamp}</span>
                 </div>
+                <p class="cookie-value">Value - ${cookieValue}</p>
                 <p class="description">${message}</p>
                 ${securityIssues ? `<ul class="security-list">${securityIssues.map(issue => `<li>${issue}</li>`).join("")}</ul>` : ""}
             </div>
@@ -91,7 +92,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (message.type === "cookieChange") {
-            const { message: msg, essentialInfo, expirationInfo, securityMessage } = message;
+            const { message: msg, essentialInfo, expirationInfo, securityMessage, cookieValue } = message;
+            console.log(message);
             const timestamp = new Date().toLocaleTimeString(); // Better timestamp handling
             const securityIssues = securityMessage ? securityMessage.split(", ").map(issue => `${issue}`) : [];
     
@@ -102,8 +104,8 @@ document.addEventListener("DOMContentLoaded", () => {
             else if (msg.includes("Cookie Modified")) logType = "modified";
     
             // Create and store log entry
-            const logEntry = createLogEntry(msg, logType, essentialInfo, timestamp, securityIssues);
-            logs.push({ message: msg, type: logType, cookie: essentialInfo, timestamp });
+            const logEntry = createLogEntry(msg, logType, essentialInfo, timestamp, securityIssues, cookieValue);
+            logs.push({ message: msg, type: logType, cookie: essentialInfo, timestamp, cookieValue });
     
             // Add entry to correct tab
             const targetContainer = document.querySelector("#logs-content .log-container"); // Normal logs tab

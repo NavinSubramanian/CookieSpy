@@ -191,6 +191,20 @@ h1 {
     border-color: rgba(138, 43, 226, 0.3);
 }
 
+.log-entry.added .log-icon{
+    color: rgb(76, 175, 80);
+}
+.log-entry.removed .log-icon{
+    color: #F44336;
+}
+.log-entry.modified .log-icon{
+    color: #8A2BE2;
+}
+.log-entry.security .log-icon{
+    color: rgb(255, 152, 0);
+}
+.log
+
 .log-icon {
     padding: 0.5rem;
     border-radius: 0.5rem;

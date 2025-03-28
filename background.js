@@ -146,6 +146,9 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
                 // Detect Third-Party Cookie
                 const cookieDomain = cookie.domain.startsWith('.') ? cookie.domain.substr(1) : cookie.domain;
                 const isThirdParty = !currentTabHostname.includes(cookieDomain) && !cookieDomain.includes(currentTabHostname);
+
+                const cookieValue = cookie.value;
+                console.log(cookie);
                 
                 if (isThirdParty) {
                     console.log(`🟦 Third-party cookie detected: ${cookie.name} from ${cookieDomain}`);
@@ -197,7 +200,8 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
                     message,
                     essentialInfo,
                     securityMessage,
-                    expirationInfo
+                    expirationInfo,
+                    cookieValue
                 });
 
                 // Alert for critical security issues
