@@ -51,118 +51,80 @@ function categorizeCookie(cookie) {
 
 // Listen for cookie changes
 chrome.cookies.onChanged.addListener((changeInfo) => {
-    if (!changeInfo.cookie) return; // Ignore undefined cookie changes
+    if (!changeInfo.cookie) return;
 
     const cookie = changeInfo.cookie;
     let message = "";
-    let source = "Unknown source";
-    let cookieDetail = "";
-    let thirdPartyMessage = null
     let securityWarnings = [];
     const { category, isSuspiciousEssential } = categorizeCookie(cookie);
 
-    // Check if the current tab is the "loggingTab"
     chrome.storage.sync.get(["loggingTab"], (result) => {
         const loggingTab = result.loggingTab;
-        if (!loggingTab) return; // No tab selected for logging, skip the processing
+        if (!loggingTab) return;
 
-        // Get the current tab ID
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             const currentTabId = tabs[0].id;
             const currentTabHostname = new URL(tabs[0].url).hostname;
 
-            // If the current tab is the "loggingTab", proceed
             if (currentTabId == loggingTab) {
-
-                // Check if it's a third-party cookie
+                // Detect Third-Party Cookie
                 const cookieDomain = cookie.domain.startsWith('.') ? cookie.domain.substr(1) : cookie.domain;
-                if (!currentTabHostname.includes(cookieDomain) && !cookieDomain.includes(currentTabHostname)) {
-                    if (changeInfo.removed) {
-                        thirdPartyMessage = `🟥 Third-party cookie removed from ${cookieDomain}: ${cookie.name}`;
-                    } else {
-                        thirdPartyMessage = `🟦 Third-party cookie added from ${cookieDomain}: ${cookie.name}`;
-                    }
-                    console.log(thirdPartyMessage);
+                const isThirdParty = !currentTabHostname.includes(cookieDomain) && !cookieDomain.includes(currentTabHostname);
+                
+                if (isThirdParty) {
+                    console.log(`🟦 Third-party cookie detected: ${cookie.name} from ${cookieDomain}`);
                 }
 
-                if (isSuspiciousEssential) {
-                    securityWarnings.push("⚠️ Suspicious 'essential' cookie detected - possible tracking cookie");
-                }
+                // Identify modification cause
+                let source = "Modified by website";
+                if (changeInfo.cause === "overwrite") source = "Overwritten by server";
+                if (changeInfo.cause === "expired_overwrite") source = "Modified by another extension";
 
-                // Identify modification source
-                if (changeInfo.cause === "explicit") {
-                    source = "Modified by the website itself";
-                } else if (changeInfo.cause === "overwrite") {
-                    source = "Modified externally (e.g., server response, browser policy)";
-                } else if (changeInfo.cause === "expired_overwrite") {
-                    source = "Modified by another extension";
-                }
+                // Detect Security Issues
+                if (!cookie.httpOnly) securityWarnings.push("Insecure cookie detected - missing HttpOnly flag");
+                if (!cookie.secure) securityWarnings.push("Cookie is sent over HTTP - vulnerable to interception");
+                if (cookie.sameSite === "unspecified") securityWarnings.push("No SameSite policy - Cross-site access allowed");
+                if (isSuspiciousEssential) securityWarnings.push("Suspicious essential cookie - possible tracking");
 
-                // Track potential session hijacking
-                const sessionKeywords = ["session", "auth", "token"];
-                const isSessionCookie = sessionKeywords.some(keyword => cookie.name.toLowerCase().includes(keyword));
-
+                // Detect Expiration & Session Hijacking
                 let expirationInfo = "Session cookie (expires when closed)";
                 if (cookie.expirationDate) {
                     let expiryDate = new Date(cookie.expirationDate * 1000);
                     let expiryYears = (cookie.expirationDate - Date.now() / 1000) / (60 * 60 * 24 * 365);
-
-                    expirationInfo = `Expires: ${expiryDate.toUTCString()}`;
-
-                    // 🚨 Warn if expiration is longer than 2 years
-                    if (expiryYears > 2) {
-                        securityWarnings.push(`⚠️ Excessively long expiration (${expiryYears.toFixed(2)} years). Possible GDPR violation!`);
-                    }
+                    expirationInfo = `Expires on ${expiryDate.toUTCString()}`;
+                    if (expiryYears > 2) securityWarnings.push("Excessively long expiration - Possible GDPR violation");
                 }
 
+                const sessionKeywords = ["session", "auth", "token"];
+                const isSessionCookie = sessionKeywords.some(keyword => cookie.name.toLowerCase().includes(keyword));
+                
                 if (changeInfo.removed) {
-                    let reason = changeInfo.cause === "evicted" ? "Deleted due to storage limit" : "Explicitly deleted";
-                    message = `❌ Cookie Removed: ${cookie.name} (${reason})`;
-                    cookieDetail = `Category: ${category} || Key: ${cookie.name} || Value: ${cookie.value || "undefined"}`;
-
-                    // Detect unauthorized session deletion
-                    if (isSessionCookie) {
-                        securityWarnings.push("🚨 Possible session hijacking: A session/auth cookie was deleted!");
-                    }
+                    message = `🚨 Cookie Removed: ${cookie.name}`;
+                    if (isSessionCookie) securityWarnings.push("Session cookie deleted - Possible session hijacking!");
                 } else {
-                    if (cookie.value === "") {
-                        message = `🆕 New Cookie Added: ${cookie.name} (${source})`;
-                    } else {
-                        message = `✏️ Cookie Modified: ${cookie.name} (${source})`;
-                    }
-                    cookieDetail = `Category: ${category} || Key: ${cookie.name} || Value: ${cookie.value || "undefined"}`;
-
-                    // Detect potential poisoning attacks (if the value changes unexpectedly)
-                    chrome.storage.local.get([cookie.name], (result) => {
-                        if (result[cookie.name] && result[cookie.name] !== cookie.value) {
-                            securityWarnings.push(`⚠️ Cookie Poisoning Detected: ${cookie.name} was altered unexpectedly!`);
-                        }
-                        chrome.storage.local.set({ [cookie.name]: cookie.value });
-                    });
+                    message = changeInfo.cause === "explicit"
+                        ? `🆕 New Cookie: ${cookie.name} (Essential)` 
+                        : `✏️ Cookie Modified: ${cookie.name}`;
                 }
 
-                // Security warnings
-                if (!cookie.httpOnly) {
-                    securityWarnings.push("⚠️ JavaScript can access this cookie (httpOnly=false)");
-                }
-                if (!cookie.secure) {
-                    securityWarnings.push("⚠️ This cookie is sent over HTTP (secure=false)");
-                }
-                if (cookie.sameSite === "unspecified") {
-                    securityWarnings.push("⚠️ No SameSite policy set (Cross-site requests allowed)");
-                }
+                // Format Security Issues for display
+                let securityMessage = securityWarnings.length > 0 
+                    ? `<ul>${securityWarnings.map(issue => `<li>${issue}</li>`).join("")}</ul>` 
+                    : "";
 
-                if (securityWarnings.length > 0) {
-                    message += ` | Security Issues: ${securityWarnings.join(", ")}`;
-                }
+                // Essential Cookie Info - Styled Green Button
+                let essentialInfo = `${cookie.name} <span class="essential-btn">Category: ${category}</span>`;
 
-                // Log to console
-                console.log("Cookie Change Detected:", message);
+                // Send formatted log message
+                chrome.runtime.sendMessage({
+                    type: "cookieChange",
+                    message,
+                    essentialInfo,
+                    securityMessage,
+                    expirationInfo
+                });
 
-                // Send message to popup
-                chrome.runtime.sendMessage({ type: "cookieChange", message, cookieDetail, thirdPartyMessage, expirationInfo });
-
-                // Show notification for critical security issues
+                // Alert for critical security issues
                 if (securityWarnings.length > 0) {
                     showNotification("⚠️ Security Alert!", message);
                 }
@@ -170,6 +132,7 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
         });
     });
 });
+
 
 // Helper function to create notifications
 function showNotification(title, message) {

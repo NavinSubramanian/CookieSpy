@@ -13,66 +13,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (exportJson) exportJson.addEventListener("click", exportAsJson);
     if (exportCsv) exportCsv.addEventListener("click", exportAsCsv);
 
-    // Listen for messages from background.js
-    const logContainer = document.getElementById("log");
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-        if (message.type === "thirdPartyCookiesList") {
-            const blockedCookiesList = document.getElementById("blocked-cookies-list");
-    
-            if (!blockedCookiesList) {
-                console.warn("Blocked cookies list container not found!");
-                return;
-            }
-    
-            blockedCookiesList.innerHTML = ""; // Clear previous entries
-    
-            if (message.cookies.length === 0) {
-                blockedCookiesList.textContent = "No third-party cookies detected.";
-            } else {
-                message.cookies.forEach((cookie) => {
-                    const entry = document.createElement("div");
-                    entry.classList.add("third-party-entry");
-                    entry.innerHTML = `<a href="${cookie.url}" target="_blank">${cookie.name}</a>`;
-                    blockedCookiesList.appendChild(entry);
-                });
-            }
-        } 
-        else if (message.type === "cookieChange") {
-            const logEntry = document.createElement("div");
-            logEntry.innerHTML = message.message;
-    
-            const logContainer = document.getElementById("log");
-            if (!logContainer) {
-                console.error("Log container not found!");
-                return;
-            }
-    
-            // Color coding based on event type
-            if (message.message.includes("Cookie Removed")) {
-                logEntry.style.color = "red";
-            } else if (message.message.includes("New Cookie Added")) {
-                logEntry.style.color = "blue";
-            } else if (message.message.includes("Cookie Modified")) {
-                logEntry.style.color = "green";
-            } else if (message.message.includes("Security Alert")) {
-                logEntry.style.color = "orange";
-                logEntry.style.fontWeight = "bold";
-            } else {
-                logEntry.style.color = "black";
-            }
-    
-            const blockquote = document.createElement("blockquote");
-            blockquote.textContent = message.cookieDetail;
-            logEntry.appendChild(blockquote);
-            const bl2 = document.createElement("blockquote");
-            bl2.textContent = message.expirationInfo;
-            logEntry.appendChild(bl2)
-    
-            logContainer.appendChild(logEntry);
-            logContainer.scrollTop = logContainer.scrollHeight;
-        }
-    });
-
     // Open Persistent Monitor
     const btn = document.getElementById("openPersistent");
     if (btn && !btn.dataset.listenerAdded) {
