@@ -49,11 +49,87 @@ function categorizeCookie(cookie) {
     return { category, isSuspiciousEssential };
 }
 
+let cookieStats = {
+    totalCookiesPerDomain: {},
+    modifiedCookies: {}
+};
+
+// Function to count cookies per domain
+function updateTotalCookiesPerDomain(cookie, changeType) {
+    const domain = cookie.domain.startsWith('.') ? cookie.domain.substring(1) : cookie.domain;
+
+    if (!cookieStats.totalCookiesPerDomain[domain]) {
+        cookieStats.totalCookiesPerDomain[domain] = 0;
+    }
+
+    if (changeType === "added") {
+        cookieStats.totalCookiesPerDomain[domain]++;
+    } else if (changeType === "removed") {
+        cookieStats.totalCookiesPerDomain[domain] = Math.max(0, cookieStats.totalCookiesPerDomain[domain] - 1);
+    }
+
+    // Send updated stats to persistent.js
+    chrome.runtime.sendMessage({ type: "updateTotalCookies", data: cookieStats.totalCookiesPerDomain });
+}
+
+// Function to track cookie modifications
+function updateModifiedCookies(cookie) {
+    const cookieKey = `${cookie.domain}:${cookie.name}`;
+
+    if (!cookieStats.modifiedCookies[cookieKey]) {
+        cookieStats.modifiedCookies[cookieKey] = { name: cookie.name, domain: cookie.domain, count: 0 };
+    }
+
+    cookieStats.modifiedCookies[cookieKey].count++;
+
+    // Send updated stats to persistent.js
+    chrome.runtime.sendMessage({ type: "updateModifiedCookies", data: cookieStats.modifiedCookies });
+}
+
+function updateCookieSizes(cookie) {
+    const cookieKey = `${cookie.domain}:${cookie.name}`;
+    const size = new Blob([JSON.stringify(cookie)]).size; // Approximate size
+
+    chrome.storage.local.get(["cookieSizes"], (data) => {
+        let cookieSizes = data.cookieSizes || {};
+
+        // Store or update cookie size
+        cookieSizes[cookieKey] = {
+            name: cookie.name,
+            domain: cookie.domain,
+            size
+        };
+
+        // Save updated size data
+        chrome.storage.local.set({ cookieSizes }, () => {
+            updateSizeStats(cookieSizes);
+        });
+    });
+}
+
+// Function to find largest cookies
+function updateSizeStats(cookieSizes) {
+    let sortedCookies = Object.values(cookieSizes).sort((a, b) => b.size - a.size); // Sort by size (descending)
+
+    let largestCookies = sortedCookies.slice(0, 5); // Top 5 largest cookies
+
+    chrome.runtime.sendMessage({
+        type: "updateLargestCookies",
+        largestCookies
+    });
+}
+
 // Listen for cookie changes
 chrome.cookies.onChanged.addListener((changeInfo) => {
     if (!changeInfo.cookie) return;
 
     const cookie = changeInfo.cookie;
+    const changeType = changeInfo.removed ? "removed" : "added";
+
+    updateTotalCookiesPerDomain(cookie, changeType);
+    updateModifiedCookies(changeInfo.cookie);
+    updateCookieSizes(changeInfo.cookie);
+
     let message = "";
     let securityWarnings = [];
     const { category, isSuspiciousEssential } = categorizeCookie(cookie);

@@ -9,6 +9,37 @@ document.addEventListener("DOMContentLoaded", () => {
     
     let logs = []; // Store logs for exporting
 
+    // Functions to update the UI
+    function updateTotalCookiesUI(data) {
+        const totalCookiesEl = document.getElementById("total-cookies");
+        totalCookiesEl.textContent = Object.entries(data)
+            .map(([domain, count]) => `${domain}: ${count}`)
+            .join(", ") || "No data available";
+    }
+    function updateModifiedCookiesUI(data) {
+        const modifiedCookiesEl = document.getElementById("frequent-cookies");
+
+        const sortedCookies = Object.values(data)
+            .sort((a, b) => b.count - a.count) // Sort by modification count
+            .slice(0, 5); // Show top 5 modified cookies
+
+        modifiedCookiesEl.textContent = sortedCookies.length > 0
+            ? sortedCookies.map(cookie => `${cookie.name} (${cookie.count} changes)`).join(", ")
+            : "No data available";
+    }
+    function updateSizeUI(largestCookies) {
+        const sizeEl = document.getElementById("largest-cookies");
+    
+        if (!largestCookies.length) {
+            sizeEl.textContent = "No data available";
+            return;
+        }
+    
+        sizeEl.innerHTML = largestCookies.map(cookie =>
+            `<b>${cookie.name}</b> (${cookie.size} bytes)`
+        ).join("<br>");
+    }
+
     // Function to create a log entry
     function createLogEntry(message, type, cookieName, timestamp, securityIssues) {
         const logEntry = document.createElement("div");
@@ -46,6 +77,19 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Listen for messages from background.js
     chrome.runtime.onMessage.addListener((message) => {
+
+        if (message.type === "updateTotalCookies") {
+            updateTotalCookiesUI(message.data);
+        }
+
+        if (message.type === "updateModifiedCookies") {
+            updateModifiedCookiesUI(message.data);
+        }
+
+        if (message.type === "updateLargestCookies") {
+            updateSizeUI(message.largestCookies);
+        }
+
         if (message.type === "cookieChange") {
             const { message: msg, essentialInfo, expirationInfo, securityMessage } = message;
             const timestamp = new Date().toLocaleTimeString(); // Better timestamp handling
